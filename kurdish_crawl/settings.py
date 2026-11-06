@@ -31,6 +31,19 @@ ROBOTSTXT_EXEMPT_DOMAINS = [
     "mezopotamyaajansi.com",
 ]
 
+# Hosts to crawl with the *recursive* spider even when a sitemap is discoverable.
+# The sitemap spider only fetches URLs listed in the sitemap (it does not follow
+# links), so a site whose sitemap is a partial "recent articles" feed gets badly
+# under-crawled (e.g. channel8 ~212, knnc 500, then "finished"). Forcing recursive
+# makes the crawler walk every in-domain link instead. Use www-stripped hosts (as
+# UrlExtractor.get_domain returns). NOTE: a forced domain that was already crawled
+# via its sitemap has a "finished" JOBDIR — delete output/full/<host>_job/ before
+# re-running, or it resumes from an empty queue and finishes instantly.
+FORCE_RECURSIVE_DOMAINS = [
+    "channel8.com",
+    "knnc.net",
+]
+
 # URL-fingerprint dedup plus per-domain article-ID dedup (see
 # kurdish_crawl/dupefilters.py and extractor/article_id.py). Per-domain seen-ID
 # sets persist as <host>_seen_ids.json next to the output shards (the feed dir).
