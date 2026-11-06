@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+scrapy = "==2.14.1"
+requests = "*"
+dotenv = "==0.9.9"
+modal = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.10"
