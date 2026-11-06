@@ -7,6 +7,7 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from twisted.python.failure import Failure
 
+from extractor.url_extractor import UrlExtractor
 from kurdish_crawl.spiders.recursive import RecursiveSpider
 from kurdish_crawl.spiders.sitemap import SitemapSpider
 
@@ -86,10 +87,25 @@ def run_crawler(
         )
         return failure
 
+    # Hosts that must use the recursive spider even if a sitemap exists — their
+    # sitemaps are partial, so sitemap-only crawling under-fetches the site.
+    force_recursive = {
+        d.lower().lstrip(".")
+        for d in settings.getlist("FORCE_RECURSIVE_DOMAINS")
+        if d
+    }
+
+    def _is_forced_recursive(target_url: str) -> bool:
+        domain = UrlExtractor.get_domain(target_url)
+        return any(
+            domain == d or domain.endswith("." + d) for d in force_recursive
+        )
+
     logger.info("Scheduling spiders for %d domain(s)", len(urls))
     for url in urls:
-        # Crawl the whole domain: sitemap if one is discoverable, else recursive.
-        sitemap_urls = SitemapSpider.get_sitemap_urls(url)
+        # Crawl the whole domain: recursive if forced (partial sitemap) or if no
+        # sitemap is discoverable; sitemap spider otherwise.
+        sitemap_urls = None if _is_forced_recursive(url) else SitemapSpider.get_sitemap_urls(url)
         if sitemap_urls:
             logger.info(
                 "Using sitemap spider for %s (%d sitemap URL candidates)",
@@ -98,7 +114,12 @@ def run_crawler(
             )
             deferred = crawler_process.crawl(SitemapSpider, sitemap_urls=sitemap_urls)
         else:
-            logger.info("Using recursive spider for %s", url)
+            if _is_forced_recursive(url):
+                logger.info(
+                    "Forcing recursive spider for %s (FORCE_RECURSIVE_DOMAINS)", url
+                )
+            else:
+                logger.info("Using recursive spider for %s", url)
             deferred = crawler_process.crawl(RecursiveSpider, url=url)
         deferred.addErrback(_log_crawl_failure)
 
