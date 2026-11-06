@@ -103,7 +103,15 @@ def crawl_domain(url: str, run_type: str, max_pages: int | None = None) -> dict:
     the pages stored per domain (smoke test); ``None`` means a full-domain walk.
     The seen-article-ID set is saved beside the shard as ``<host>_seen_ids.json``
     so repeat full crawls are incremental."""
+    import os
+
     from run_crawler import run_crawler
+
+    # Stamp the container's stdout with its domain + task id, so the
+    # domain<->container mapping is recoverable from `modal container logs <id>`
+    # (the spider logs go to the Volume log file, not here). MODAL_TASK_ID is the
+    # same `ta-...` id shown by `modal container list`.
+    print(f"[crawl] task={os.environ.get('MODAL_TASK_ID')} url={url}", flush=True)
 
     run_dir = Path(OUTPUT_DIR) / run_type
     run_dir.mkdir(parents=True, exist_ok=True)
